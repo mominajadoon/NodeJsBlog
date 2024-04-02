@@ -1,7 +1,10 @@
 {
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "init": "^0.1.2",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-token-encrypt": "^1.0.4",
     "lodash": "^4.17.21",
     "mongodb": "^6.5.0",
     "mongoose": "^8.2.3",

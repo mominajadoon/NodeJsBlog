@@ -1,12 +1,21 @@
 const blogController = require("../controllers/blogController");
-const { getAllBlogs, getSingleBlog, createBlog, updateBlog, deleteBlog } =
-  blogController;
+const {
+  getAllBlogs,
+  getSingleBlog,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  like,
+  dislike,
+} = blogController;
 const URL = require("url");
 
 function blogRoutes(req, res) {
   const { method, url } = req;
   const { pathname } = URL.parse(url);
+
   console.log("Request pathname:", pathname);
+
   if (method === "GET" && pathname === "/api/blogs") {
     getAllBlogs(req, res);
   } else if (method === "GET" && pathname.startsWith("/api/blogs/")) {
@@ -17,6 +26,10 @@ function blogRoutes(req, res) {
     updateBlog(req, res);
   } else if (method === "DELETE" && pathname.startsWith("/api/blogs/")) {
     deleteBlog(req, res);
+  } else if (method === "POST" && pathname.startsWith("/api/blogs/like")) {
+    like(req, res);
+  } else if (method === "POST" && pathname.startsWith("/api/blogs/dislike/")) {
+    dislike(req, res);
   } else {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify("not found"));

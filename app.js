@@ -1,6 +1,11 @@
-const http = require("http");
 require("dotenv").config();
-const mongoose = require("mongoose");
+const http = require("http");
+const { MongoClient } = require("mongodb");
+// const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+const { connectDatabase } = require("./config/db");
+
+// routes
 const userRoutes = require("./routes/userRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 
@@ -16,13 +21,40 @@ const app = http.createServer((req, res) => {
   }
 });
 
-const databaseUrl = process.env.MONGO_URL;
+async function startServer() {
+  try {
+    // Connect to the database
+    await connectDatabase();
 
-mongoose
-  .connect(databaseUrl)
-  .then(() => {
-    app.listen(3000, "localhost", () => {
-      console.log("Server is listening on port 3000");
+    // starting the HTTP Server
+    app.listen(5000, () => {
+      console.log("Server is listening on port 5000");
     });
-  })
-  .catch((err) => console.error("Error connecting to MongoDB:", err));
+  } catch (error) {
+    console.log("Error connecting to MongoDB", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
+// const databaseUrl = process.env.MONGO_URL;
+// const client = new MongoClient(databaseUrl);
+
+// async function startServer() {
+//   try {
+//     // connecting with mongodb client
+//     await client.connect();
+//     console.log("Connected to MongoDB server");
+
+//     // starting the HTTP Server
+//     app.listen(5000, () => {
+//       console.log("Server is listening on port 5000");
+//     });
+//   } catch (error) {
+//     console.log("Error connecting to MongoDB", error);
+//     process.exit(1);
+//   }
+// }
+
+// startServer();
