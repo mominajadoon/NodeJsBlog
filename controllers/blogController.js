@@ -6,26 +6,12 @@ const { connectDatabase, getDatabase } = require("../config/db");
 const { like } = require("../models/like");
 const { dislike } = require("../models/dislike");
 const URL = require("url");
-const { log } = require("util");
-let collection;
+// const { log } = require("util");
 
-// Connect to the database
-connectDatabase()
-  .then(() => {
-    collection = getDatabase().collection("blogs");
-  })
-  .catch((error) => {
-    console.error("Error connecting to the database:", error);
-  });
-// const databaseUrl = process.env.MONGO_URL;
-// const client = new MongoClient(databaseUrl);
-
-// const database = client.db("Sblogs");
-// const collection = database.collection("blogs");
-
+// Get all blogs
 exports.getAllBlogs = async function (req, res) {
   try {
-    const allBlogs = await collection.find().toArray();
+    const allBlogs = await Blog.getAllBlogs();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(allBlogs));
   } catch (error) {
@@ -35,6 +21,7 @@ exports.getAllBlogs = async function (req, res) {
   }
 };
 
+// for single blog
 exports.getSingleBlog = async function (req, res) {
   try {
     const { pathname } = URL.parse(req.url, true);
@@ -44,23 +31,27 @@ exports.getSingleBlog = async function (req, res) {
     // Validate if id is a valid ObjectId
     if (!ObjectId.isValid(id)) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "Invalid user ID" }));
+      res.end(JSON.stringify({ error: "Invalid ID" }));
+      return;
     }
-    const blog = await collection.findOne({ _id: new ObjectId(id) });
-
+    const blog = await Blog.findSingle(id); // Call getSingleBlog function with blogId
     if (!blog) {
-      res.end(JSON.stringify("Blog post not found"));
-      return (res.status = 404);
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Blog post not found" }));
+      return;
     }
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(blog));
+    res.end(JSON.stringify({ blog }));
+    res.status = 200;
+    return;
   } catch (error) {
-    console.log(error);
-    res.end(JSON.stringify("Blog post not found"));
-    return (res.status = 404);
+    console.error(error);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal server error" }));
+    return;
   }
 };
+
+// create new blog
 exports.createBlog = async function (req, res) {
   let bd = "";
   req.on("data", (chunk) => {
@@ -68,6 +59,21 @@ exports.createBlog = async function (req, res) {
   });
   req.on("end", async () => {
     try {
+      // Check if request body is not empty
+      if (!bd.trim()) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON format" }));
+        return;
+      }
+      // Check if incoming data is valid JSON format
+      let jsonData;
+      try {
+        jsonData = JSON.parse(bd);
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON format" }));
+        return;
+      }
       const { title, body } = JSON.parse(bd);
       // Check if title or body is empty
       if (!title || !body) {
@@ -75,18 +81,12 @@ exports.createBlog = async function (req, res) {
         res.end(JSON.stringify({ error: "Title and body are required" }));
         return;
       }
-
       const slug = slugify(title, "-");
-      console.log(slug);
-      const result = await collection.insertOne({
-        _title: title,
-        _body: body,
-        _slug: slug,
-      });
+      // console.log(slug);
+      const newBlog = await Blog.createBlog(title, body, slug);
 
       res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Blog created" }));
-
+      res.end(JSON.stringify({ message: "Blog created", data: newBlog }));
       // Do not close the MongoDB connection here
     } catch (err) {
       console.log(err);
@@ -96,16 +96,30 @@ exports.createBlog = async function (req, res) {
   });
 };
 
-exports.updateBlog = function (req, res) {
+// update blogs
+exports.updateBlog = async function (req, res) {
   const blogId = req.url.split("/")[3];
   let body = "";
-
   req.on("data", (chunk) => {
     body += chunk.toString();
   });
-
   req.on("end", async () => {
     try {
+      // Check if request body is not empty
+      if (!body.trim()) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Empty request body" }));
+        return;
+      }
+      // Check if incoming data is valid JSON format
+      let jsonData;
+      try {
+        jsonData = JSON.parse(body);
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON format" }));
+        return;
+      }
       const blogDataFromUser = JSON.parse(body);
       const { title, body: blogBody } = blogDataFromUser;
       if (!title || !blogBody) {
@@ -113,17 +127,20 @@ exports.updateBlog = function (req, res) {
         res.end(JSON.stringify({ error: "Title and body are required" }));
         return;
       }
-      const filter = { _id: new ObjectId(blogId) }; // Assuming ObjectId is imported
-      const update = { $set: blogDataFromUser };
-
-      const result = await collection.updateOne(filter, update);
+      const slug = slugify(title, "-");
+      const updatedFields = {
+        title: title,
+        body: blogBody,
+        slug: slug,
+      };
+      const result = await Blog.updateBlog(blogId, updatedFields);
 
       if (result.matchedCount === 0) {
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Blog not found" }));
       } else {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "Blog updated" }));
+        res.writeHead(201, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Blog updated", updatedFields }));
       }
     } catch (err) {
       console.log(err);
@@ -132,14 +149,14 @@ exports.updateBlog = function (req, res) {
     }
   });
 };
+
+// delete blog
 exports.deleteBlog = async function (req, res) {
   try {
     const blogId = req.url.split("/")[3];
-    const query = { _id: new ObjectId(blogId) }; // Construct a query object
+    const result = await Blog.deleteBlog(blogId);
 
-    const deleteBlog = await collection.deleteOne(query);
-
-    if (deleteBlog.deletedCount === 0) {
+    if (result.deletedCount === 0) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Blog not found" }));
     } else {
@@ -152,6 +169,8 @@ exports.deleteBlog = async function (req, res) {
     res.end(JSON.stringify({ error: "Internal server error" }));
   }
 };
+
+// like blogs
 exports.like = async function (req, res) {
   try {
     const parts = req.url.split("/");
@@ -174,7 +193,7 @@ exports.like = async function (req, res) {
   }
 };
 
-// Dislike function
+// Dislike blog function
 exports.dislike = async function (req, res) {
   try {
     const parts = req.url.split("/");
@@ -196,61 +215,18 @@ exports.dislike = async function (req, res) {
   }
 };
 
-// // Like function
-// exports.like = async function (req, res) {
-//   try {
-//     const parts = req.url.split("/");
-//     const blogId = parts[parts.length - 1];
-//     const query = { _id: new ObjectId(blogId) };
-//     console.log(blogId);
+// count likes on blogs
+exports.countUserLikes = async function (req, res) {
+  try {
+    const parts = req.url.split("/");
+    const userId = parts[parts.length - 1];
+    const likedBlogs = await Blog.countUserLikes(userId);
 
-//     const update = { $inc: { likesCount: 1 } }; // Increment likesCount by 1
-
-//     const result = await collection.updateOne(query, update);
-
-//     if (result.matchedCount === 0) {
-//       res.writeHead(404, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ error: "Blog not found" }));
-//     } else {
-//       res.writeHead(200, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ message: "Blog liked" }));
-//     }
-//   } catch (error) {
-//     console.error(error);
-//     res.writeHead(500, { "Content-Type": "application/json" });
-//     res.end(JSON.stringify({ error: "Internal server error" }));
-//   }
-// };
-// // Dislike function
-// exports.dislike = async function (req, res) {
-//   try {
-//     const blogId = req.url.split("/")[3];
-//     const query = { _id: new ObjectId(blogId) };
-
-//     const update = { $inc: { dislikesCount: 1 } }; // Increment dislikesCount by 1
-
-//     const result = await collection.updateOne(query, update);
-
-//     if (result.matchedCount === 0) {
-//       res.writeHead(404, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ error: "Blog not found" }));
-//     } else {
-//       res.writeHead(200, { "Content-Type": "application/json" });
-//       res.end(JSON.stringify({ message: "Blog disliked" }));
-//     }
-//   } catch (error) {
-//     console.error(error);
-//   }
-// };
-
-// // like func
-// exports.like = async (req, res) => {
-//   try {
-//   } catch (error) {}
-// };
-
-// // dislike func
-// exports.dislike = async (req, res) => {
-//   try {
-//   } catch (error) {}
-// };
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ likedBlogs }));
+  } catch (error) {
+    console.error("Error counting user likes:", error);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal server error" }));
+  }
+};

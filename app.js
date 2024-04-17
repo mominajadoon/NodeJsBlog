@@ -1,7 +1,6 @@
 require("dotenv").config();
 const http = require("http");
 const { MongoClient } = require("mongodb");
-// const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { connectDatabase } = require("./config/db");
 
@@ -20,7 +19,6 @@ const app = http.createServer((req, res) => {
     res.end("internal server error");
   }
 });
-
 async function startServer() {
   try {
     // Connect to the database
@@ -35,26 +33,6 @@ async function startServer() {
     process.exit(1);
   }
 }
+// Middleware function to verify JWT token
 
 startServer();
-
-// const databaseUrl = process.env.MONGO_URL;
-// const client = new MongoClient(databaseUrl);
-
-// async function startServer() {
-//   try {
-//     // connecting with mongodb client
-//     await client.connect();
-//     console.log("Connected to MongoDB server");
-
-//     // starting the HTTP Server
-//     app.listen(5000, () => {
-//       console.log("Server is listening on port 5000");
-//     });
-//   } catch (error) {
-//     console.log("Error connecting to MongoDB", error);
-//     process.exit(1);
-//   }
-// }
-
-// startServer();

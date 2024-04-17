@@ -5,7 +5,7 @@ let collection;
 
 connectDatabase()
   .then(() => {
-    collection = getDatabase().collection("dislike");
+    collection = getDatabase().collection("dislikes");
   })
   .catch((error) => {
     console.error("Error connecting to the database:", error);
@@ -17,17 +17,17 @@ exports.dislike = async function (blogId, userId) {
       console.error("Database connection not established");
       return { error: "Database connection not established" };
     }
-    // Check if the user has already liked the blog post
+    // Check if the user has already disliked the blog post
     const existingdisLike = await collection.findOne({
-      _userId: userId,
-      _blogId: blogId,
+      _userId: new ObjectId(userId),
+      _blogId: new ObjectId(blogId),
     });
     if (existingdisLike) {
       return { error: "You have already disliked this blog post" };
     }
     const result = await collection.insertOne({
-      _userId: userId,
-      _blogId: blogId,
+      _userId: new ObjectId(userId),
+      _blogId: new ObjectId(blogId),
     });
     return { message: "blog Disliked" };
   } catch (error) {

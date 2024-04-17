@@ -5,7 +5,7 @@ let collection;
 
 connectDatabase()
   .then(() => {
-    collection = getDatabase().collection("like");
+    collection = getDatabase().collection("likes");
   })
   .catch((error) => {
     console.error("Error connecting to the database:", error);
@@ -19,15 +19,15 @@ exports.like = async function (blogId, userId) {
     }
     // Check if the user has already liked the blog post
     const existingLike = await collection.findOne({
-      _userId: userId,
-      _blogId: blogId,
+      _userId: new ObjectId(userId),
+      _blogId: new ObjectId(blogId),
     });
     if (existingLike) {
       return { error: "You have already liked this blog post" };
     }
     const result = await collection.insertOne({
-      _userId: userId,
-      _blogId: blogId,
+      _userId: new ObjectId(userId),
+      _blogId: new ObjectId(blogId),
     });
     return { message: "blog liked" };
   } catch (error) {
