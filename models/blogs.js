@@ -1,6 +1,5 @@
-const { ObjectId, Long } = require("mongodb");
-const { connectDatabase, getDatabase } = require("../config/db");
-const { like } = require("./like");
+const { ObjectId } = require("mongodb");
+const { getDatabase } = require("../config/db");
 
 // Get all blogs
 exports.getAllBlogs = async function () {
@@ -64,6 +63,7 @@ exports.deleteBlog = async function (blogId) {
 exports.countUserLikes = async function (userId) {
   try {
     const likeCollection = getDatabase().collection("likes");
+
     const blogs = await likeCollection
       .aggregate([
         { $match: { _userId: new ObjectId(userId) } },
@@ -71,36 +71,15 @@ exports.countUserLikes = async function (userId) {
         {
           $lookup: {
             from: "blogs",
-            localField: "_blogId",
-            foreignField: "_id",
+            localField: "_userId",
+            foreignField: "_userId            ",
             as: "likedBlogs",
           },
         },
       ])
       .toArray();
-    // return blogs;
-    return blogs.map((a) => a.likedBlogs[0]);
-    // Match likes for the specific user
 
-    // Project to output only the necessary fields
-
-    // Find likes for the specific user
-    // const likes = await likeCollection
-    //   .find({
-    //     _userId: new ObjectId(userId),
-    //   })
-    //   .toArray();
-
-    // const blogIds = likes.map((like) => like._blogId); // Extract blogIds from likes
-
-    // const blogCollection = getDatabase().collection("blogs");
-
-    // // Find and return liked blogs using the blogIds
-    // const likedBlogs = await blogCollection
-    //   .find({ _id: { $in: blogIds } })
-    //   .toArray();
-
-    // return likedBlogs;
+    return blogs;
   } catch (error) {
     console.error("Error counting user likes:", error);
     throw error;

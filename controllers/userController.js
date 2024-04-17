@@ -1,9 +1,5 @@
-const bcrypt = require("bcrypt");
 const User = require("../models/user");
-const { MongoClient } = require("mongodb");
-const { connectDatabase, getDatabase } = require("../config/db");
 const { generateToken } = require("../util/token");
-const { parse } = require("dotenv");
 
 // Signup function
 exports.signupUser = async (req, res) => {

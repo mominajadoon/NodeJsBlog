@@ -1,12 +1,8 @@
 const Blog = require("../models/blogs");
-const { MongoClient } = require("mongodb");
 const { ObjectId } = require("mongodb");
 const { default: slugify } = require("slugify");
-const { connectDatabase, getDatabase } = require("../config/db");
 const { like } = require("../models/like");
 const { dislike } = require("../models/dislike");
-const URL = require("url");
-// const { log } = require("util");
 
 // Get all blogs
 exports.getAllBlogs = async function (req, res) {
@@ -24,10 +20,7 @@ exports.getAllBlogs = async function (req, res) {
 // for single blog
 exports.getSingleBlog = async function (req, res) {
   try {
-    const { pathname } = URL.parse(req.url, true);
-    const parts = pathname.split("/");
-    const id = parts[parts.length - 1];
-    console.log(id);
+    const id = req.params.id;
     // Validate if id is a valid ObjectId
     if (!ObjectId.isValid(id)) {
       res.writeHead(400, { "Content-Type": "application/json" });
@@ -98,7 +91,7 @@ exports.createBlog = async function (req, res) {
 
 // update blogs
 exports.updateBlog = async function (req, res) {
-  const blogId = req.url.split("/")[3];
+  const blogId = req.params.id;
   let body = "";
   req.on("data", (chunk) => {
     body += chunk.toString();
@@ -153,7 +146,7 @@ exports.updateBlog = async function (req, res) {
 // delete blog
 exports.deleteBlog = async function (req, res) {
   try {
-    const blogId = req.url.split("/")[3];
+    const blogId = req.params.id;
     const result = await Blog.deleteBlog(blogId);
 
     if (result.deletedCount === 0) {
@@ -173,10 +166,8 @@ exports.deleteBlog = async function (req, res) {
 // like blogs
 exports.like = async function (req, res) {
   try {
-    const parts = req.url.split("/");
-    const blogId = parts[parts.length - 1];
-    const userId = parts[parts.length - 2];
-    console.log(blogId);
+    const blogId = req.params.blogId;
+    const userId = req.params.userId;
     const result = await like(blogId, userId);
 
     if (result.error) {
@@ -196,9 +187,8 @@ exports.like = async function (req, res) {
 // Dislike blog function
 exports.dislike = async function (req, res) {
   try {
-    const parts = req.url.split("/");
-    const blogId = parts[parts.length - 1];
-    const userId = parts[parts.length - 2];
+    const blogId = req.params.blogId;
+    const userId = req.params.userId;
     const result = await dislike(blogId, userId);
 
     if (result.error) {
@@ -218,8 +208,7 @@ exports.dislike = async function (req, res) {
 // count likes on blogs
 exports.countUserLikes = async function (req, res) {
   try {
-    const parts = req.url.split("/");
-    const userId = parts[parts.length - 1];
+    const userId = req.params.userId;
     const likedBlogs = await Blog.countUserLikes(userId);
 
     res.writeHead(200, { "Content-Type": "application/json" });
