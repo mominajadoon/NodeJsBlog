@@ -17,21 +17,23 @@ exports.dislike = async function (blogId, userId) {
       console.error("Database connection not established");
       return { error: "Database connection not established" };
     }
+
     // Check if the user has already disliked the blog post
     const existingdisLike = await collection.findOne({
       _userId: new ObjectId(userId),
       _blogId: new ObjectId(blogId),
     });
     if (existingdisLike) {
-      return { error: "You have already disliked this blog post" };
+      return "already Disliked";
     }
-    const result = await collection.insertOne({
+
+    await collection.insertOne({
       _userId: new ObjectId(userId),
       _blogId: new ObjectId(blogId),
     });
     return { message: "blog Disliked" };
   } catch (error) {
-    console.error("Error liking blog:", error);
+    console.error("Error disliking blog:", error);
     return { error: "Internal server error" };
   }
 };

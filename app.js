@@ -15,16 +15,15 @@ connectDatabase()
   .then((res) => app.listen(5000))
   .catch((err) => console.log(err));
 
-// routes
-app.get("/", (req, res) => {
-  res.redirect("/api/blogs/");
-});
-
 // blog routes
 app.use("/api/blogs", blogRoutes);
 
 // user routes
 app.use("/api/users", userRoutes);
+// routes
+app.get("/", (req, res) => {
+  res.redirect("/api/blogs/");
+});
 
 // 404
 app.use((req, res) => {

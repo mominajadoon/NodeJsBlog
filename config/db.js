@@ -8,13 +8,12 @@ let database;
 async function connectDatabase() {
   try {
     await client.connect();
-    console.log("Connected to the database");
+    console.log("Connected to the Sblogs");
     database = client.db("Sblogs");
   } catch (error) {
     console.error("Error connecting to the database:", error);
   }
 }
-
 function getDatabase() {
   return database;
 }

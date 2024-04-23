@@ -17,11 +17,11 @@ const router = express.Router();
 
 router.get("/", getAllBlogs);
 router.get("/:id", getSingleBlog);
-router.post("/create", verifyToken, createBlog);
-router.put("/update/:id", verifyToken, updateBlog);
-router.delete("/delete/:id", verifyToken, deleteBlog);
-router.post("/dislike/:userId/:blogId", verifyToken, dislike);
-router.post("/like/:userId/:blogId", verifyToken, like);
+router.post("/", verifyToken, createBlog);
+router.put("/:id", verifyToken, updateBlog);
+router.delete("/:id", verifyToken, deleteBlog);
+router.post("/dislike/:blogId", verifyToken, dislike);
+router.post("/like/:blogId", verifyToken, like);
 router.get("/userlikes/:userId", verifyToken, countUserLikes);
 
 module.exports = router;

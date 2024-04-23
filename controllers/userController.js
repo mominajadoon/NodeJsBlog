@@ -10,6 +10,14 @@ exports.signupUser = async (req, res) => {
 
   req.on("end", async () => {
     try {
+      let jsonData;
+      try {
+        jsonData = JSON.parse(body);
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON format" }));
+        return;
+      }
       const parsedBody = JSON.parse(body);
       const { email, password } = parsedBody;
       if (!email || !password) {
@@ -17,6 +25,7 @@ exports.signupUser = async (req, res) => {
         res.end(JSON.stringify({ error: "Email and password are required" }));
         return;
       }
+
       // Check if the user already exists
       const existingUser = await User.findUserByEmail(email);
 
@@ -29,7 +38,13 @@ exports.signupUser = async (req, res) => {
       // res.setHeader("Authorization", token);
       await User.signupUser(email, password);
       res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "User created successfully", token }));
+      res.end(
+        JSON.stringify({
+          message: "User created successfully",
+          token,
+          data: { email, password },
+        })
+      );
       return;
     } catch (error) {
       console.error("Error signing up user:", error);
@@ -38,6 +53,7 @@ exports.signupUser = async (req, res) => {
     }
   });
 };
+
 // Login function
 exports.loginUser = async (req, res) => {
   let body = "";
@@ -48,6 +64,14 @@ exports.loginUser = async (req, res) => {
 
   req.on("end", async () => {
     try {
+      let jsonData;
+      try {
+        jsonData = JSON.parse(body);
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON format" }));
+        return;
+      }
       const parsedBody = JSON.parse(body);
       const { email, password } = parsedBody;
       if (!email || !password) {
@@ -62,7 +86,13 @@ exports.loginUser = async (req, res) => {
       res.setHeader("Authorization", token);
       await User.loginUser(email, password);
       res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Login successful", token }));
+      res.end(
+        JSON.stringify({
+          message: "Login successful",
+          token,
+          data: { email, password },
+        })
+      );
       return;
     } catch (error) {
       console.error("Error logging in user:", error);

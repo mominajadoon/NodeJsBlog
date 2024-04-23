@@ -59,6 +59,31 @@ exports.deleteBlog = async function (blogId) {
   }
 };
 
+exports.updateBlog = async function (blogId, updatedFields) {
+  try {
+    collection = getDatabase().collection("blogs");
+    const result = await collection.updateOne(
+      { _id: new ObjectId(blogId) },
+      { $set: updatedFields }
+    );
+    return result;
+  } catch (error) {
+    console.log("Error updating blog: ", error);
+  }
+};
+
+// for existing blog
+exports.existingBlog = async function (slug) {
+  try {
+    const collection = getDatabase().collection("blogs");
+    const result = await collection.findOne({ slug });
+    return result;
+  } catch (error) {
+    console.error("Error checking existing blog:", error);
+    throw error;
+  }
+};
+
 // count user likes
 exports.countUserLikes = async function (userId) {
   try {
@@ -71,17 +96,28 @@ exports.countUserLikes = async function (userId) {
         {
           $lookup: {
             from: "blogs",
-            localField: "_userId",
-            foreignField: "_userId            ",
+            localField: "_blogId",
+            foreignField: "_id",
             as: "likedBlogs",
           },
         },
       ])
       .toArray();
 
-    return blogs;
+    return blogs.map((like) => like.likedBlogs[0]);
   } catch (error) {
     console.error("Error counting user likes:", error);
     throw error;
+  }
+};
+exports.blogExsits = async function (blogId) {
+  collection = getDatabase().collection("blogs");
+  const blogExists = await collection.findOne({
+    _id: new ObjectId(blogId),
+  });
+  if (!blogExists) {
+    return "non existing";
+  } else {
+    return "existing";
   }
 };

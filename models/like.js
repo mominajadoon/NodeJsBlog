@@ -17,15 +17,17 @@ exports.like = async function (blogId, userId) {
       console.error("Database connection not established");
       return { error: "Database connection not established" };
     }
+
     // Check if the user has already liked the blog post
     const existingLike = await collection.findOne({
       _userId: new ObjectId(userId),
       _blogId: new ObjectId(blogId),
     });
     if (existingLike) {
-      return { error: "You have already liked this blog post" };
+      return "already liked";
     }
-    const result = await collection.insertOne({
+
+    await collection.insertOne({
       _userId: new ObjectId(userId),
       _blogId: new ObjectId(blogId),
     });
