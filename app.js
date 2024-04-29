@@ -1,7 +1,9 @@
 require("dotenv").config();
+const mongoose = require("mongoose");
 
 const express = require("express");
-const { connectDatabase } = require("./config/db");
+const bodyParser = require("body-parser");
+const { connectToDatabase } = require("./config/db");
 
 // routes
 const userRoutes = require("./routes/userRoutes");
@@ -11,9 +13,12 @@ const blogRoutes = require("./routes/blogRoutes");
 const app = express();
 
 // Connect to the database
-connectDatabase()
+connectToDatabase()
   .then((res) => app.listen(5000))
   .catch((err) => console.log(err));
+
+// Parse JSON bodies
+app.use(bodyParser.json());
 
 // blog routes
 app.use("/api/blogs", blogRoutes);

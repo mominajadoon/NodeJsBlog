@@ -1,39 +1,18 @@
-const { ObjectId } = require("mongodb");
-const { connectDatabase, getDatabase } = require("../config/db");
+const mongoose = require("mongoose");
 
-let collection;
+const DislikeSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  blogId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Blog",
+    required: true,
+  },
+});
 
-connectDatabase()
-  .then(() => {
-    collection = getDatabase().collection("dislikes");
-  })
-  .catch((error) => {
-    console.error("Error connecting to the database:", error);
-  });
+const Dislike = mongoose.model("Dislike", DislikeSchema);
 
-exports.dislike = async function (blogId, userId) {
-  try {
-    if (!collection) {
-      console.error("Database connection not established");
-      return { error: "Database connection not established" };
-    }
-
-    // Check if the user has already disliked the blog post
-    const existingdisLike = await collection.findOne({
-      _userId: new ObjectId(userId),
-      _blogId: new ObjectId(blogId),
-    });
-    if (existingdisLike) {
-      return "already Disliked";
-    }
-
-    await collection.insertOne({
-      _userId: new ObjectId(userId),
-      _blogId: new ObjectId(blogId),
-    });
-    return { message: "blog Disliked" };
-  } catch (error) {
-    console.error("Error disliking blog:", error);
-    return { error: "Internal server error" };
-  }
-};
+module.exports = Dislike;

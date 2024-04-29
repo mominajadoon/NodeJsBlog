@@ -1,103 +1,73 @@
 const User = require("../models/user");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const { generateToken } = require("../util/token");
 
 // Signup function
 exports.signupUser = async (req, res) => {
-  let body = "";
-  req.on("data", (chunk) => {
-    body += chunk.toString();
-  });
+  try {
+    const { email, password } = req.body;
 
-  req.on("end", async () => {
-    try {
-      let jsonData;
-      try {
-        jsonData = JSON.parse(body);
-      } catch (error) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Invalid JSON format" }));
-        return;
-      }
-      const parsedBody = JSON.parse(body);
-      const { email, password } = parsedBody;
-      if (!email || !password) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Email and password are required" }));
-        return;
-      }
-
-      // Check if the user already exists
-      const existingUser = await User.findUserByEmail(email);
-
-      if (existingUser) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "User is already registered" }));
-        return;
-      }
-      const token = generateToken(parsedBody);
-      // res.setHeader("Authorization", token);
-      await User.signupUser(email, password);
-      res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          message: "User created successfully",
-          token,
-          data: { email, password },
-        })
-      );
-      return;
-    } catch (error) {
-      console.error("Error signing up user:", error);
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Internal server error" }));
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "User is already registered" });
     }
-  });
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user instance and save it to the database
+    const newUser = new User({ email, password: hashedPassword });
+    await newUser.save();
+
+    // Generate token
+    const token = generateToken({ email });
+
+    // Return success response with token
+    return res.status(201).json({
+      message: "User created successfully",
+      token,
+      data: { email, password },
+    });
+  } catch (error) {
+    console.error("Error signing up user:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-// Login function
+// login
 exports.loginUser = async (req, res) => {
-  let body = "";
+  try {
+    const { email, password } = req.body;
 
-  req.on("data", (chunk) => {
-    body += chunk.toString();
-  });
+    // Check if the user exists
+    const existingUser = await User.findOne({ email });
 
-  req.on("end", async () => {
-    try {
-      let jsonData;
-      try {
-        jsonData = JSON.parse(body);
-      } catch (error) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Invalid JSON format" }));
-        return;
-      }
-      const parsedBody = JSON.parse(body);
-      const { email, password } = parsedBody;
-      if (!email || !password) {
-        // Check for email and password, not title and body
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Email and password are required" }));
-        return;
-      }
-
-      // Call the loginUser function from the model
-      const token = generateToken(parsedBody);
-      res.setHeader("Authorization", token);
-      await User.loginUser(email, password);
-      res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          message: "Login successful",
-          token,
-          data: { email, password },
-        })
-      );
-      return;
-    } catch (error) {
-      console.error("Error logging in user:", error);
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Invalid email or password" }));
+    if (!existingUser) {
+      return res.status(400).json({ error: "Invalid email or password" });
     }
-  });
+
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      existingUser.password
+    );
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // Generate token
+    const token = generateToken({ email });
+
+    // Return success response with token
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      data: { email: existingUser.email },
+    });
+  } catch (error) {
+    console.error("Error logging in user:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
